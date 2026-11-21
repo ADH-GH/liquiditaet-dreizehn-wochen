@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Liquiditätsvorschau über dreizehn Wochen</title>
+<style>
+:root{--bg:oklch(19% .022 258);--panel:oklch(23.5% .024 258);--raise:oklch(28.5% .025 258);--ink:oklch(95% .008 250);
+--ink2:oklch(82% .014 252);--mute:oklch(70% .018 253);--line:oklch(32% .025 258);--grid:oklch(27.5% .022 258);
+--accent:oklch(65.8% .128 251);--onaccent:oklch(16% .02 258);--glow:oklch(65.8% .128 251 / .18);
+--crit:oklch(70% .19 22);--high:oklch(78% .14 80);--auto:oklch(70% .14 155);
+--mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+--display:"Sora",ui-sans-serif,system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}html{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.01em}:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header,main{max-width:1180px;margin:0 auto;padding:0 32px}header{margin-top:32px}main{padding-bottom:64px}
+.kicker{font:500 12.5px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.kicker::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--glow);margin-right:10px;vertical-align:1px}
+h1{margin:22px 0 13px;font:600 38px/1.1 var(--display);letter-spacing:-.02em}
+.sub{color:var(--mute);font-size:13.5px;margin:0 0 8px;max-width:70ch}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:16px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px 10px}
+.tile b{display:block;font:500 28px/1.1 var(--mono);letter-spacing:-.02em;color:var(--accent);white-space:nowrap}
+.tile i{display:block;font:500 10.5px/1.3 var(--mono);font-style:normal;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin-top:6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;margin-top:12px;min-width:0}
+.card h2{margin:0 0 4px;font:600 18px/1.3 var(--display);color:var(--ink)}.card p.sub{margin-bottom:14px}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+label{display:block;font:500 10.5px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:12px 0 5px}
+input,select,textarea{width:100%;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:14px var(--sans)}
+textarea{height:auto;padding:10px;font:13px/1.5 var(--mono)}
+button{height:36px;font:600 14px/1 var(--sans);border-radius:8px;padding:0 16px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--ink)}
+button:hover{background:var(--raise)}button.ok{border-color:var(--accent);background:var(--accent);color:var(--onaccent)}
+button[disabled]{opacity:.45;cursor:not-allowed}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--grid);vertical-align:top}
+th{font:500 10.5px/1.3 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}td.num,th.num{text-align:right;font-family:var(--mono)}
+.tag{display:inline-block;font:500 11px/1.8 var(--mono);letter-spacing:.04em;border:1px solid currentColor;border-radius:6px;padding:0 8px;margin:0 4px 0 0;white-space:nowrap}
+.tag.auto{color:var(--auto)}.tag.appr{color:var(--high)}.tag.crit{color:var(--crit)}.tag.info{color:var(--accent)}
+.mute{color:var(--mute)}.mono{font-family:var(--mono)}
+footer{max-width:1180px;margin:0 auto;padding:0 32px 40px;color:var(--mute);font-size:12.5px;line-height:1.6}
+@media(max-width:720px){header,main,footer{padding-left:16px;padding-right:16px}h1{font-size:28px}.card{overflow-x:auto}}
+
+/* Ergaenzungen fuer dieses Tool */
+.tag{margin-bottom:4px;white-space:normal}
+.klein{font-size:12.5px;color:var(--mute);margin:2px 0 0}
+.zeile{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.felder{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0 12px}
+.fehler{color:var(--crit);font-size:13px;min-height:1.2em;margin:8px 0 0}
+.posten{border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:10px;background:var(--bg)}
+input[type=checkbox]{width:18px;height:18px;padding:0;accent-color:var(--accent);vertical-align:middle;flex:none}
+.check{display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font:13.5px var(--sans);color:var(--ink);margin:8px 0 0}
+button.schmal{height:30px;padding:0 12px;font-size:13px}
+tr.offen td{background:var(--raise)}
+.minus{color:var(--crit)}
+td.balkenzelle{width:16%;vertical-align:middle}
+.spur{position:relative;height:10px}
+.balken{position:absolute;top:0;height:10px;border-radius:3px;background:var(--accent)}
+.balken.neg{background:var(--crit)}
+.mitte{position:absolute;left:50%;top:-3px;width:1px;height:16px;background:var(--line)}
+.kopfzeile{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between}
+.kopfzeile .rechts{min-width:280px}.kopfzeile .rechts label{margin-top:0}
+</style>
+</head>
+<body>
+<header>
+  <div class="kicker">Showroom ADH · Liquidität</div>
+  <h1>Liquiditätsvorschau über dreizehn Wochen</h1>
+  <p class="sub">Was jede Woche eingeht und abgeht, und was danach auf dem Konto steht. Aus offenen Posten, festen Zahlungen und Planwerten, gerechnet mit dem Tag, an dem Kunden wirklich zahlen. Firma, Zahlen und Personen sind erfunden, Stand ist Freitag, der 04.12.2026.</p>
+  <div class="tiles" id="tiles" aria-live="polite">
+    <div class="tile"><b id="kBestand">0 €</b><i>Kontostand heute</i></div>
+    <div class="tile"><b id="kTief">0 €</b><i id="kTiefI">tiefster Stand</i></div>
+    <div class="tile"><b id="kKredit">0</b><i>Wochen im Kredit</i></div>
+    <div class="tile"><b id="kFehlt">0 €</b><i>fehlen über die Kreditlinie</i></div>
+    <div class="tile"><b id="kStand">Entwurf</b><i>Stand der Vorschau</i></div>
+  </div>
+</header>
+
+<main>
+  <section class="card" id="karteVorschau" aria-labelledby="hVorschau">
+    <div class="kopfzeile">
+      <div>
+        <h2 id="hVorschau">Vorschau je Woche</h2>
+        <p class="sub" id="vorschauSub"></p>
+      </div>
+      <div class="rechts"><label for="wer">Angemeldet als</label><select id="wer"></select></div>
+    </div>
+    <table id="tabVorschau">
+      <thead><tr><th>Woche</th><th class="num">Einzahlungen</th><th class="num">Auszahlungen</th><th class="num">Saldo</th><th class="num">Stand am Ende</th><th></th><th>Lage</th><th></th></tr></thead>
+      <tbody id="vorschauBody"></tbody>
+    </table>
+  </section>
+
+  <div class="duo">
+    <section class="card" id="kartePosten" aria-labelledby="hPosten">
+      <h2 id="hPosten">Posten der Woche</h2>
+      <p class="sub" id="postenSub"></p>
+      <table id="tabPosten">
+        <thead><tr><th>Tag</th><th>Posten</th><th>Herkunft</th><th class="num">Betrag</th></tr></thead>
+        <tbody id="postenBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card" id="karteMassnahmen" aria-labelledby="hMassnahmen">
+      <h2 id="hMassnahmen">Maßnahmen</h2>
+      <p class="sub">Eine Zahlungszusage des Kunden trägt Vertrieb oder Buchhaltung ein. Eine Lieferantenzahlung zu verschieben, schlägt der Einkauf vor und gibt die Leitung Finanzen frei. Löhne, Steuern und Sozialabgaben verschiebt niemand.</p>
+      <label for="mPosten">Posten</label>
+      <select id="mPosten"></select>
+      <div class="felder">
+        <div><label for="mDatum">Neuer Zahltag</label><input id="mDatum" type="text" class="mono" placeholder="TT.MM.JJJJ" autocomplete="off"></div>
+        <div><label for="mGrund">Begründung</label><input id="mGrund" type="text" maxlength="160" autocomplete="off"></div>
+      </div>
+      <div class="zeile"><button type="button" class="ok" id="bVorschlag">Eintragen</button></div>
+      <p class="fehler" id="fehlerMassnahme" role="alert"></p>
+      <div id="massnahmenListe" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <div class="duo">
+    <section class="card" id="karteAnnahmen" aria-labelledby="hAnnahmen">
+      <h2 id="hAnnahmen">Annahmen</h2>
+      <p class="sub" id="annahmenSub"></p>
+      <table id="tabKunden">
+        <thead><tr><th>Kunde</th><th class="num">Offen</th><th class="num">Zahlt nach Fälligkeit</th></tr></thead>
+        <tbody id="kundenBody"></tbody>
+      </table>
+      <p class="klein">Der Abstand je Kunde stammt aus dem bisherigen Zahlungsverhalten. Die Vorschau rechnet jede Forderung mit Fälligkeit plus diesem Abstand.</p>
+    </section>
+
+    <section class="card" id="karteFreigabe" aria-labelledby="hFreigabe">
+      <h2 id="hFreigabe">Freigabe der Vorschau</h2>
+      <p class="sub">Die Buchhaltung legt die Vorschau jede Woche vor, die Leitung Finanzen gibt sie frei. Jede Änderung danach macht sie wieder zum Entwurf.</p>
+      <div id="freigabeStand" aria-live="polite"></div>
+      <div class="zeile"><button type="button" id="bVorlegen">Vorschau vorlegen</button><button type="button" class="ok" id="bFreigeben">Vorschau freigeben</button></div>
+      <label class="check" for="abw-sommer"><input type="checkbox" id="abw-sommer"> <span>Petra Sommer ist abwesend, Andreas Keller vertritt</span></label>
+      <p class="fehler" id="fehlerFreigabe" role="alert"></p>
+      <h2 style="margin-top:18px">Protokoll</h2>
+      <table id="tabProtokoll">
+        <thead><tr><th>Zeit</th><th>Wer</th><th>Vorgang</th></tr></thead>
+        <tbody id="protokollBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <section class="card" id="karteSystem" aria-labelledby="hSystem">
+    <h2 id="hSystem">So wird daraus Ihr System</h2>
+    <table>
+      <tbody>
+        <tr><th scope="row">Einführung</th><td>Wir nehmen Ihre festen Zahlungen, Ihre Kreditlinien und das Zahlungsverhalten Ihrer Kunden auf und legen fest, wer die Vorschau pflegt, wer Maßnahmen vorschlägt und wer freigibt.</td></tr>
+        <tr><th scope="row">Anbindung</th><td>Offene Posten kommen jede Woche aus Ihrer Buchhaltung, etwa DATEV, SAP oder Odoo, Kontostände aus dem Bankzugang. Die freigegebene Vorschau geht über Microsoft 365 an die Geschäftsführung.</td></tr>
+        <tr><th scope="row">Schulung</th><td>Buchhaltung, Vertrieb und Einkauf üben an Ihren Zahlen, wie sie Zusagen eintragen, Verschiebungen vorschlagen und eine enge Woche früh erkennen.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<footer>Showroom ADH, 04.12.2026. Beispieldaten. Alle Eingaben bleiben in diesem Browserfenster. Die Vorschau ist eine Rechnung aus Annahmen und ersetzt weder Steuerberatung noch eine Prüfung der Zahlungsfähigkeit.</footer>
+
+<script>
+"use strict";
+/* ---------- Stammdaten (Beispiel, erfunden) ---------- */
+var TAG = 86400000, WOCHEN = 13;
+var START = Date.UTC(2026, 11, 7), STICHTAG = Date.UTC(2026, 11, 4);
+var KW = ["50", "51", "52", "53", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+var BESTAND = 182000, LINIE = 75000;
+var P = {
+  richter: { n: "Paul Richter", r: "Buchhaltung" },
+  brandt:  { n: "Carsten Brandt", r: "Leitung Vertrieb" },
+  lindner: { n: "Tobias Lindner", r: "Leitung Einkauf" },
+  sommer:  { n: "Petra Sommer", r: "Leitung Finanzen" },
+  keller:  { n: "Andreas Keller", r: "Geschäftsführung" }
+};
+var PID = ["richter", "brandt", "lindner", "sommer", "keller"];
+var VERZUG = { "Beispiel Anlagenbau GmbH": 7, "Muster Pumpen KG": 5, "Demo Chemie AG": 30, "Probe Maschinen GmbH": 14, "Stadtwerke Beispielstadt": 0 };
+
+/* ---------- Helfer ---------- */
+function $(id) { return document.getElementById(id); }
+function h(tag, attrs, kinder) {
+  var e = document.createElement(tag), k;
+  if (attrs) for (k in attrs) {
+    if (k === "text") e.textContent = attrs[k];
+    else if (k === "klasse") e.className = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  (kinder || []).forEach(function (c) { if (c) e.appendChild(c); });
+  return e;
+}
+function tag(text, klasse) { return h("span", { klasse: "tag " + klasse, text: text }); }
+function zwei(n) { return (n < 10 ? "0" : "") + n; }
+function de(ms) { var d = new Date(ms); return zwei(d.getUTCDate()) + "." + zwei(d.getUTCMonth() + 1) + "." + d.getUTCFullYear(); }
+function kurz(ms) { var d = new Date(ms); return zwei(d.getUTCDate()) + "." + zwei(d.getUTCMonth() + 1) + "."; }
+function d(s) { var p = s.split("."); return Date.UTC(+p[2], +p[1] - 1, +p[0]); }
+function leseDatum(s) {
+  var m = String(s || "").trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!m) return NaN;
+  var x = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+  if (x.getUTCFullYear() !== +m[3] || x.getUTCMonth() !== +m[2] - 1 || x.getUTCDate() !== +m[1]) return NaN;
+  return x.getTime();
+}
+function euro0(x) { var r = Math.round(x); return (r < 0 ? "−" : "") + Math.abs(r).toLocaleString("de-DE") + " €"; }
+function jetzt() { var t = new Date(); return zwei(t.getHours()) + ":" + zwei(t.getMinutes()) + ":" + zwei(t.getSeconds()); }
+function logge(wer, was) { protokoll.unshift({ zeit: jetzt(), wer: wer, was: was }); }
+function woche(ms) { return Math.floor((ms - START) / (7 * TAG)); }
+
+/* ---------- Posten ---------- */
+var POSTEN = [];
+function forderung(id, kunde, betrag, faellig) {
+  var f = d(faellig), z = f + VERZUG[kunde] * TAG;
+  POSTEN.push({ id: id, art: "E", quelle: "offen", name: "Forderung " + kunde, kunde: kunde, betrag: betrag, faellig: f, datum: Math.max(START, z), original: Math.max(START, z), fest: false, zusage: false });
+}
+function verbindlichkeit(id, name, betrag, faellig) { POSTEN.push({ id: id, art: "A", quelle: "offen", name: "Rechnung " + name, betrag: betrag, faellig: d(faellig), datum: d(faellig), original: d(faellig), fest: false }); }
+function fest(id, name, betrag, tagStr) { POSTEN.push({ id: id, art: "A", quelle: "fest", name: name, betrag: betrag, datum: d(tagStr), original: d(tagStr), fest: true }); }
+function plan(id, art, name, betrag, w, wochentag) { var t = START + (w * 7 + wochentag) * TAG; POSTEN.push({ id: id, art: art, quelle: "plan", name: name, betrag: betrag, datum: t, original: t, fest: false }); }
+function beispiel() {
+  forderung("F-01", "Beispiel Anlagenbau GmbH", 96000, "04.12.2026");
+  forderung("F-02", "Muster Pumpen KG", 64000, "10.12.2026");
+  forderung("F-03", "Demo Chemie AG", 142000, "20.11.2026");
+  forderung("F-04", "Probe Maschinen GmbH", 78000, "18.12.2026");
+  forderung("F-05", "Beispiel Anlagenbau GmbH", 110000, "30.12.2026");
+  forderung("F-06", "Stadtwerke Beispielstadt", 58000, "08.01.2027");
+  forderung("F-07", "Muster Pumpen KG", 72000, "15.01.2027");
+  forderung("F-08", "Demo Chemie AG", 88000, "22.01.2027");
+  verbindlichkeit("V-01", "Beispiel Stahlhandel", 86000, "11.12.2026");
+  verbindlichkeit("V-02", "Muster Kunststoffe", 54000, "18.12.2026");
+  verbindlichkeit("V-03", "Demo Spedition", 21000, "22.12.2026");
+  verbindlichkeit("V-04", "Probe Werkzeugbau", 118000, "08.01.2027");
+  verbindlichkeit("V-05", "Beispiel Stahlhandel", 92000, "15.01.2027");
+  verbindlichkeit("V-06", "Muster Energie", 38000, "20.01.2027");
+  verbindlichkeit("V-07", "Muster Kunststoffe", 61000, "29.01.2027");
+  fest("W-01", "Lohnsteuer November", 31000, "10.12.2026");
+  fest("W-02", "Umsatzsteuer Oktober", 44000, "10.12.2026");
+  fest("W-03", "Leasing Maschinen", 9800, "15.12.2026");
+  fest("W-04", "Löhne und Gehälter Dezember", 148000, "30.12.2026");
+  fest("W-05", "Sozialversicherung Dezember", 62000, "28.12.2026");
+  fest("W-06", "Darlehen, Zins und Tilgung", 12400, "30.12.2026");
+  fest("W-07", "Miete Januar", 18500, "04.01.2027");
+  fest("W-08", "Versicherungen, Jahresbeitrag", 26000, "04.01.2027");
+  fest("W-09", "Lohnsteuer Dezember", 31000, "11.01.2027");
+  fest("W-10", "Umsatzsteuer November", 51000, "11.01.2027");
+  fest("W-11", "Leasing Maschinen", 9800, "15.01.2027");
+  fest("W-12", "Löhne und Gehälter Januar", 148000, "29.01.2027");
+  fest("W-13", "Sozialversicherung Januar", 62000, "27.01.2027");
+  fest("W-14", "Darlehen, Zins und Tilgung", 12400, "29.01.2027");
+  fest("W-15", "Miete Februar", 18500, "01.02.2027");
+  fest("W-16", "Lohnsteuer Januar", 31000, "10.02.2027");
+  fest("W-17", "Umsatzsteuer Dezember", 38000, "10.02.2027");
+  fest("W-18", "Leasing Maschinen", 9800, "15.02.2027");
+  fest("W-19", "Löhne und Gehälter Februar", 148000, "26.02.2027");
+  fest("W-20", "Sozialversicherung Februar", 62000, "24.02.2027");
+  fest("W-21", "Darlehen, Zins und Tilgung", 12400, "26.02.2027");
+  fest("W-22", "Miete März", 18500, "01.03.2027");
+  var i, ein = { 5: 110000, 6: 60000, 7: 170000, 8: 180000, 9: 175000, 10: 100000, 11: 185000, 12: 180000 };
+  for (i = 0; i < WOCHEN; i++) plan("S-" + zwei(i), "A", "Laufende kleine Zahlungen", 12000, i, 2);
+  for (i = 8; i < WOCHEN; i++) plan("M-" + zwei(i), "A", "Material laut Einkaufsplan", 75000, i, 3);
+  Object.keys(ein).forEach(function (w) { plan("U-" + zwei(+w), "E", "Erwartete Zahlungen aus laufendem Umsatz", ein[w], +w, 2); });
+}
+
+/* ---------- Zustand ---------- */
+var protokoll = [], massnahmen = [], laufendeNr = 1, offenWoche = 7, abwSommer = false;
+var vorschau = { stand: "entwurf", von: null, frei: null };
+
+/* ---------- Rechnung ---------- */
+function rechne() {
+  var ein = [], aus = [], stand = [], s = BESTAND, i;
+  for (i = 0; i < WOCHEN; i++) { ein.push(0); aus.push(0); }
+  POSTEN.forEach(function (p) {
+    var w = woche(p.datum);
+    if (w < 0) w = 0;
+    if (w >= WOCHEN) return;
+    if (p.art === "E") ein[w] += p.betrag; else aus[w] += p.betrag;
+  });
+  for (i = 0; i < WOCHEN; i++) { s += ein[i] - aus[i]; stand.push(s); }
+  return { ein: ein, aus: aus, stand: stand };
+}
+function finanzen() { return abwSommer ? "keller" : "sommer"; }
+function geaendert() {
+  if (vorschau.stand !== "entwurf") { vorschau = { stand: "entwurf", von: null, frei: null }; logge("richter", "Die Vorschau hat sich geändert und ist wieder Entwurf."); }
+}
+
+/* ---------- Anzeige ---------- */
+function zeigeVorschau() {
+  var body = $("vorschauBody"), R = rechne(), max = Math.max(BESTAND, 1), tief = 0, kredit = 0, fehlt = 0;
+  body.textContent = "";
+  R.stand.forEach(function (x, i) { if (Math.abs(x) > max) max = Math.abs(x); if (x < R.stand[tief]) tief = i; if (x < 0) kredit++; if (x < -LINIE && -LINIE - x > fehlt) fehlt = -LINIE - x; });
+  R.stand.forEach(function (x, i) {
+    var saldo = R.ein[i] - R.aus[i], lage;
+    if (x >= 0) lage = tag("im Guthaben", "auto");
+    else if (x >= -LINIE) lage = tag("nutzt die Kreditlinie", "appr");
+    else lage = tag("Linie reicht nicht, es fehlen " + euro0(-LINIE - x), "crit");
+    var b = h("div", { klasse: "balken" + (x < 0 ? " neg" : "") }), breite = Math.max(1, Math.round(Math.abs(x) / max * 50));
+    b.style.width = breite + "%"; b.style.left = x < 0 ? (50 - breite) + "%" : "50%";
+    var kn = h("button", { type: "button", klasse: "schmal", id: "oeffne-" + i, text: i === offenWoche ? "Geöffnet" : "Posten" });
+    kn.addEventListener("click", function () { offenWoche = i; zeigeAlles(); });
+    body.appendChild(h("tr", { id: "woche-" + i, klasse: i === offenWoche ? "offen" : "" }, [
+      h("td", null, [h("div", { text: "KW " + KW[i] }), h("div", { klasse: "klein", text: "ab " + kurz(START + i * 7 * TAG) })]),
+      h("td", { klasse: "num", text: euro0(R.ein[i]) }), h("td", { klasse: "num", text: euro0(R.aus[i]) }),
+      h("td", { klasse: "num" + (saldo < 0 ? " minus" : ""), text: (saldo > 0 ? "+" : "") + euro0(saldo) }),
+      h("td", { klasse: "num" + (x < 0 ? " minus" : ""), text: euro0(x) }),
+      h("td", { klasse: "balkenzelle" }, [h("div", { klasse: "spur" }, [b, h("div", { klasse: "mitte" })])]),
+      h("td", null, [lage]), h("td", null, [kn])
+    ]));
+  });
+  $("vorschauSub").textContent = "Kontostand heute " + euro0(BESTAND) + ", Kreditlinie " + euro0(LINIE) + ". Die Wochen beginnen am Montag, die erste am " + de(START) + ".";
+  $("kBestand").textContent = euro0(BESTAND);
+  $("kTief").textContent = euro0(R.stand[tief]);
+  $("kTiefI").textContent = "tiefster Stand, KW " + KW[tief];
+  $("kKredit").textContent = String(kredit);
+  $("kFehlt").textContent = euro0(fehlt);
+  $("kStand").textContent = vorschau.stand === "frei" ? "freigegeben" : vorschau.stand === "vorgelegt" ? "vorgelegt" : "Entwurf";
+}
+function herkunft(p) {
+  if (p.quelle === "fest") return tag("fest, nicht verschiebbar", "info");
+  if (p.quelle === "plan") return tag("Planwert", "appr");
+  return tag("offener Posten", "auto");
+}
+function zeigePosten() {
+  var body = $("postenBody"), liste = POSTEN.filter(function (p) { var w = woche(p.datum); if (w < 0) w = 0; return w === offenWoche; });
+  body.textContent = "";
+  $("postenSub").textContent = "KW " + KW[offenWoche] + ", " + de(START + offenWoche * 7 * TAG) + " bis " + de(START + (offenWoche * 7 + 6) * TAG) + ".";
+  liste.sort(function (a, b) { return a.datum - b.datum || (a.art === "E" ? -1 : 1); }).forEach(function (p) {
+    var td = h("td", null, [h("div", { text: p.name }), h("div", { klasse: "klein mono", text: p.id })]);
+    if (p.kunde) td.appendChild(h("div", { klasse: "klein", text: "Fällig " + de(p.faellig) + (p.zusage ? ", Zusage des Kunden" : ", zahlt üblicherweise " + VERZUG[p.kunde] + " Tage später") }));
+    if (p.datum !== p.original) td.appendChild(h("div", null, [tag("verschoben vom " + de(p.original), "appr")]));
+    body.appendChild(h("tr", { id: "posten-" + p.id }, [
+      h("td", { klasse: "mono", text: kurz(p.datum) }), td, h("td", null, [herkunft(p)]),
+      h("td", { klasse: "num" + (p.art === "A" ? " minus" : ""), text: (p.art === "A" ? "−" : "+") + Math.round(p.betrag).toLocaleString("de-DE") + " €" })
+    ]));
+  });
+  if (liste.length === 0) { var td0 = h("td", { klasse: "mute", text: "In dieser Woche steht nichts an." }); td0.colSpan = 4; body.appendChild(h("tr", null, [td0])); }
+}
+function zeigeMassnahmen() {
+  var sel = $("mPosten"), alt = sel.value, liste = $("massnahmenListe");
+  sel.textContent = "";
+  POSTEN.filter(function (p) { return p.quelle !== "plan"; }).forEach(function (p) {
+    sel.appendChild(h("option", { value: p.id, text: p.id + " " + p.name + ", " + euro0(p.betrag) + ", " + kurz(p.datum) }));
+  });
+  if (alt && sel.querySelector('option[value="' + alt + '"]')) sel.value = alt; else sel.value = "V-07";
+  liste.textContent = "";
+  massnahmen.forEach(function (m) {
+    var p = POSTEN.filter(function (x) { return x.id === m.pid; })[0], teile = [];
+    var st = m.stand === "vorschlag" ? tag("wartet auf Freigabe: " + P[finanzen()].n, "appr") : m.stand === "frei" ? tag(p.art === "E" ? "eingetragen" : "freigegeben von " + P[m.frei].n, "auto") : tag("abgelehnt von " + P[m.frei].n, "crit");
+    teile.push(h("div", null, [h("b", { text: m.id + " " }), st]));
+    teile.push(h("div", { klasse: "klein", text: p.name + ", " + euro0(p.betrag) + ": vom " + de(m.alt) + " auf den " + de(m.neu) + ". " + P[m.von].n + ": " + m.grund }));
+    if (m.stand === "vorschlag") {
+      var bJ = h("button", { type: "button", klasse: "ok schmal", id: "frei-" + m.id, text: "Freigeben" });
+      var bN = h("button", { type: "button", klasse: "schmal", id: "nein-" + m.id, text: "Ablehnen" });
+      bJ.addEventListener("click", function () { entscheide(m, true); });
+      bN.addEventListener("click", function () { entscheide(m, false); });
+      teile.push(h("div", { klasse: "zeile" }, [bJ, bN]));
+    }
+    liste.appendChild(h("div", { klasse: "posten", id: "massnahme-" + m.id }, teile));
+  });
+}
+function zeigeAnnahmen() {
+  var body = $("kundenBody");
+  body.textContent = "";
+  $("annahmenSub").textContent = "Kontostand heute " + euro0(BESTAND) + ". Kontokorrentlinie " + euro0(LINIE) + ". Planwerte stammen aus Vertriebs- und Einkaufsplan.";
+  Object.keys(VERZUG).forEach(function (k) {
+    var offen = 0;
+    POSTEN.forEach(function (p) { if (p.kunde === k) offen += p.betrag; });
+    body.appendChild(h("tr", null, [h("td", { text: k }), h("td", { klasse: "num", text: euro0(offen) }), h("td", { klasse: "num", text: VERZUG[k] + " Tage" })]));
+  });
+}
+function zeigeFreigabe() {
+  var box = $("freigabeStand"), wartet = massnahmen.filter(function (m) { return m.stand === "vorschlag"; }).length;
+  box.textContent = "";
+  if (vorschau.stand === "frei") box.appendChild(tag("freigegeben von " + P[vorschau.frei].n + ", vorgelegt von " + P[vorschau.von].n, "auto"));
+  else if (vorschau.stand === "vorgelegt") box.appendChild(tag("vorgelegt von " + P[vorschau.von].n + ", wartet auf " + P[finanzen()].n, "appr"));
+  else box.appendChild(tag("Entwurf der Buchhaltung", "info"));
+  if (wartet) box.appendChild(tag(wartet + (wartet === 1 ? " Maßnahme wartet" : " Maßnahmen warten") + " auf Freigabe", "appr"));
+  $("bVorlegen").disabled = vorschau.stand !== "entwurf";
+  $("bFreigeben").disabled = vorschau.stand !== "vorgelegt";
+}
+function zeigeProtokoll() {
+  var body = $("protokollBody");
+  body.textContent = "";
+  protokoll.slice(0, 40).forEach(function (e) {
+    body.appendChild(h("tr", null, [h("td", { klasse: "mono", text: e.zeit }), h("td", { text: P[e.wer].n }), h("td", { text: e.was })]));
+  });
+}
+function zeigeAlles() { zeigeVorschau(); zeigePosten(); zeigeMassnahmen(); zeigeAnnahmen(); zeigeFreigabe(); zeigeProtokoll(); }
+
+/* ---------- Vorgaenge ---------- */
+function vorschlagen() {
+  var wer = $("wer").value, f = $("fehlerMassnahme"), p = POSTEN.filter(function (x) { return x.id === $("mPosten").value; })[0];
+  var neu = leseDatum($("mDatum").value), grund = $("mGrund").value.trim();
+  f.textContent = "";
+  if (!p) return;
+  if (p.fest) { f.textContent = p.name + " hat eine gesetzliche oder vertragliche Frist und lässt sich hier nicht verschieben."; return; }
+  if (massnahmen.some(function (m) { return m.pid === p.id && m.stand === "vorschlag"; })) { f.textContent = "Für diesen Posten wartet schon eine Maßnahme auf Freigabe."; return; }
+  if (isNaN(neu)) { f.textContent = "Bitte den neuen Zahltag als Datum eintragen, zum Beispiel 12.02.2027."; $("mDatum").focus(); return; }
+  if (neu < STICHTAG) { f.textContent = "Der neue Zahltag liegt in der Vergangenheit."; return; }
+  if (neu === p.datum) { f.textContent = "Das ist der Tag, der schon in der Vorschau steht."; return; }
+  if (!grund) { f.textContent = "Bitte begründen, worauf sich der neue Zahltag stützt."; $("mGrund").focus(); return; }
+  if (p.art === "E") {
+    if (wer !== "brandt" && wer !== "richter") { f.textContent = "Eine Zahlungszusage tragen Vertrieb oder Buchhaltung ein."; return; }
+    var m1 = { id: "M-" + zwei(laufendeNr++), pid: p.id, alt: p.datum, neu: neu, grund: grund, von: wer, stand: "frei", frei: wer };
+    massnahmen.unshift(m1);
+    p.datum = neu; p.zusage = true;
+    logge(wer, m1.id + ": Zahlungszusage zu " + p.name + ", " + euro0(p.betrag) + ", neuer Zahltag " + de(neu) + ". " + grund);
+    geaendert();
+  } else {
+    if (wer !== "lindner" && wer !== "richter") { f.textContent = "Eine Lieferantenzahlung zu verschieben, schlagen Einkauf oder Buchhaltung vor."; return; }
+    var m2 = { id: "M-" + zwei(laufendeNr++), pid: p.id, alt: p.datum, neu: neu, grund: grund, von: wer, stand: "vorschlag", frei: null };
+    massnahmen.unshift(m2);
+    logge(wer, m2.id + ": Verschiebung vorgeschlagen, " + p.name + ", " + euro0(p.betrag) + ", vom " + de(p.datum) + " auf den " + de(neu) + ". " + grund);
+  }
+  $("mDatum").value = ""; $("mGrund").value = "";
+  zeigeAlles();
+}
+function entscheide(m, ja) {
+  var wer = $("wer").value, f = $("fehlerMassnahme"), p = POSTEN.filter(function (x) { return x.id === m.pid; })[0];
+  f.textContent = "";
+  if (wer === m.von) { f.textContent = "Wer die Verschiebung vorgeschlagen hat, gibt sie nicht frei."; return; }
+  if (wer !== finanzen()) { f.textContent = "Über Verschiebungen entscheidet " + P[finanzen()].n + "."; return; }
+  m.frei = wer;
+  if (ja) {
+    m.stand = "frei"; p.datum = m.neu;
+    logge(wer, m.id + " freigegeben" + (abwSommer ? " in Vertretung für Petra Sommer" : "") + ". " + p.name + " wird am " + de(m.neu) + " gezahlt.");
+    geaendert();
+  } else {
+    m.stand = "abgelehnt";
+    logge(wer, m.id + " abgelehnt. " + p.name + " bleibt beim " + de(p.datum) + ".");
+  }
+  zeigeAlles();
+}
+function vorlegen() {
+  var wer = $("wer").value, f = $("fehlerFreigabe");
+  f.textContent = "";
+  if (wer !== "richter") { f.textContent = "Die Vorschau legt die Buchhaltung vor: " + P.richter.n + "."; return; }
+  if (massnahmen.some(function (m) { return m.stand === "vorschlag"; })) { f.textContent = "Erst über die wartenden Maßnahmen entscheiden."; return; }
+  var R = rechne(), tief = Math.min.apply(null, R.stand);
+  vorschau = { stand: "vorgelegt", von: wer, frei: null };
+  logge(wer, "Vorschau vorgelegt. Tiefster Stand " + euro0(tief) + ", Kreditlinie " + euro0(LINIE) + ".");
+  zeigeAlles();
+}
+function freigebenVorschau() {
+  var wer = $("wer").value, f = $("fehlerFreigabe");
+  f.textContent = "";
+  if (wer === vorschau.von) { f.textContent = "Wer vorlegt, gibt nicht frei."; return; }
+  if (wer !== finanzen()) { f.textContent = "Die Vorschau gibt " + P[finanzen()].n + " frei."; return; }
+  vorschau.stand = "frei"; vorschau.frei = wer;
+  logge(wer, "Vorschau freigegeben" + (abwSommer ? " in Vertretung für Petra Sommer" : "") + ". Sie geht an die Geschäftsführung.");
+  zeigeAlles();
+}
+
+/* ---------- Start ---------- */
+(function () {
+  PID.forEach(function (p) { $("wer").appendChild(h("option", { value: p, text: P[p].n + ", " + P[p].r })); });
+  $("wer").value = "richter";
+  $("bVorschlag").addEventListener("click", vorschlagen);
+  $("bVorlegen").addEventListener("click", vorlegen);
+  $("bFreigeben").addEventListener("click", freigebenVorschau);
+  $("abw-sommer").addEventListener("change", function () {
+    abwSommer = $("abw-sommer").checked;
+    logge("sommer", abwSommer ? "Abwesenheit eingetragen. Andreas Keller vertritt." : "Abwesenheit beendet.");
+    zeigeAlles();
+  });
+  beispiel();
+  protokoll.unshift({ zeit: "07:50:12", wer: "richter", was: "Offene Posten aus der Buchhaltung übernommen: 8 Forderungen, 7 Lieferantenrechnungen." });
+  zeigeAlles();
+})();
+</script>
+</body>
+</html>
